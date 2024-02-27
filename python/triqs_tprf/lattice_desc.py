@@ -1743,6 +1743,17 @@ module.add_function ("gf<triqs::mesh::imfreq, tensor_valued<4>> triqs_tprf::chiq
 
 module.add_function ("triqs_tprf::chi_wk_t triqs_tprf::attatch_tri_vert (triqs_tprf::chi_nn_cvt L_wn, triqs_tprf::chi_kwnn_cvt chi_kwnn)", doc = r"""""")
 
+#############################################################################3
 
+
+module.add_function ("triqs_tprf::b_g_Dw_t polarization(triqs_tprf::b_g_Dw_cvt g_w, dlr_imfreq iw_mesh_b, int num_cores)", doc = r"""""")
+
+module.add_function ("triqs_tprf::b_g_Dw_t screened_potential(triqs_tprf::b_g_Dw_cvt P, matrix<double> V, bool self_interactions, int num_cores)", doc = r"""""")
+
+module.add_function ("triqs_tprf::b_g_Dw_t dyn_self_energy(triqs_tprf::b_g_Dw_cvt G, triqs_tprf::b_g_Dw_cvt W, matrix<double> V, bool self_interactions, int num_cores)", doc = r"""""")
+
+module.add_function ("triqs_tprf::b_g_Dw_t hartree_self_energy(triqs_tprf::b_g_Dw_cvt G, matrix<double> V, bool self_interactions, int num_cores)", doc = r"""""")
+
+module.add_function ("triqs_tprf::b_g_Dw_t fock_self_energy(triqs_tprf::b_g_Dw_cvt G, matrix<double> V, bool self_interactions, int num_cores)", doc = r"""""")
 
 module.generate_code()
