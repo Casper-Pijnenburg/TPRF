@@ -1756,4 +1756,10 @@ module.add_function ("triqs_tprf::b_g_Dw_t hartree_self_energy(triqs_tprf::b_g_D
 
 module.add_function ("triqs_tprf::b_g_Dw_t fock_self_energy(triqs_tprf::b_g_Dw_cvt G, matrix<double> V, bool self_interactions, int num_cores)", doc = r"""""")
 
+module.add_function ("triqs_tprf::b_g_Dt_t iw_to_tau_p(triqs_tprf::b_g_Dw_cvt g_w, int num_cores);", doc = r"""""")
+module.add_function ("triqs_tprf::b_g_Dw_t tau_to_iw_p(triqs_tprf::b_g_Dt_cvt g_t, int num_cores);", doc = r"""""")
+
+module.add_function ("triqs_tprf::b_g_Dt_t iw_to_tau(triqs_tprf::b_g_Dw_cvt g_w);", doc = r"""""")
+module.add_function ("triqs_tprf::b_g_Dw_t tau_to_iw(triqs_tprf::b_g_Dt_cvt g_t);", doc = r"""""")
+
 module.generate_code()

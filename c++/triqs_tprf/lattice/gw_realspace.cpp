@@ -23,86 +23,8 @@ namespace triqs_tprf {
         return make_gf_dlr_imfreq(dlr);
     }
 
-    // b_g_Dt_t iw_to_tau_p(b_g_Dw_cvt g_w) {
-    //     auto iw_mesh = g_w[0].mesh();
-    //     auto tau_mesh = make_adjoint_mesh(iw_mesh);
-    //     int iw_size = iw_mesh.size();
-    //     int tau_size = tau_mesh.size();
-
-    //     int size = g_w[0].target().shape()[0];
-
-    //     auto gf_temp = gf(tau_mesh, g_w[0].target().shape());
-    //     auto g_tau = make_block_gf<dlr_imtime>(g_w.block_names(), {gf_temp, gf_temp});
-
-
-    //     #pragma omp parallel for
-    //     for (int i = 0; i < size; ++i) {
-    //         for (int j = 0; j < size; ++ j) {
-    //             auto g_up = gf<dlr_imfreq, scalar_valued>{iw_mesh};
-    //             auto g_dn = gf<dlr_imfreq, scalar_valued>{iw_mesh};
-
-    //             for (int w = 0; w < iw_size; ++w) {
-    //                 g_up[w] = g_w[0][w](i, j);
-    //                 g_dn[w] = g_w[1][w](i, j);
-    //             }
-
-    //             auto g_up_dlr = make_gf_dlr(g_up);
-    //             auto g_up_t = make_gf_dlr_imtime(g_up_dlr);
-
-    //             auto g_dn_dlr = make_gf_dlr(g_dn);
-    //             auto g_dn_t = make_gf_dlr_imtime(g_dn_dlr);
-
-    //             for (int t = 0; t < tau_size; ++t) {
-    //                 g_tau[0][t](i, j) = g_up_t[t];
-    //                 g_tau[1][t](i, j) = g_dn_t[t];
-    //             }
-    //         }
-    //     }
-
-    //     return g_tau;
-    // }
-
-
-    // b_g_Dw_t tau_to_iw_p(b_g_Dt_cvt g_t) {
-    //     auto tau_mesh = g_t[0].mesh();
-    //     auto iw_mesh = make_adjoint_mesh(tau_mesh);
-    //     int tau_size = tau_mesh.size();
-    //     int iw_size = iw_mesh.size();
-    //     int size = g_t[0].target().shape()[0];
-
-    //     auto gf_temp = gf(iw_mesh, g_t[0].target().shape());
-    //     auto g_w = make_block_gf<dlr_imfreq>(g_t.block_names(), {gf_temp, gf_temp});
-
-
-    //     #pragma omp parallel for
-    //     for (int i = 0; i < size; ++i) {
-    //         for (int j = 0; j < size; ++ j) {
-    //             auto g_up = gf<dlr_imtime, scalar_valued>{tau_mesh};
-    //             auto g_dn = gf<dlr_imtime, scalar_valued>{tau_mesh};
-
-    //             for (int t = 0; t < tau_size; ++t) {
-    //                 g_up[t] = g_t[0][t](i, j);
-    //                 g_dn[t] = g_t[1][t](i, j);
-    //             }
-
-    //             auto g_up_dlr = make_gf_dlr(g_up);
-    //             auto g_up_w = make_gf_dlr_imfreq(g_up_dlr);
-
-    //             auto g_dn_dlr = make_gf_dlr(g_dn);
-    //             auto g_dn_w = make_gf_dlr_imfreq(g_dn_dlr);
-
-    //             for (int w = 0; w < iw_size; ++w) {
-    //                 g_w[0][w](i, j) = g_up_w[w];
-    //                 g_w[1][w](i, j) = g_dn_w[w];
-    //             }
-    //         }
-    //     }
-
-    //     return g_w;
-    // }
-
-
-    b_g_Dt_t iw_to_tau_p(b_g_Dw_cvt g_w) {
+    b_g_Dt_t iw_to_tau_p(b_g_Dw_cvt g_w, int num_cores) {
+        omp_set_num_threads(num_cores);
         auto iw_mesh = g_w[0].mesh();
         auto tau_mesh = make_adjoint_mesh(iw_mesh);
         int iw_size = iw_mesh.size();
@@ -139,7 +61,8 @@ namespace triqs_tprf {
     }
 
 
-    b_g_Dw_t tau_to_iw_p(b_g_Dt_cvt g_t) {
+    b_g_Dw_t tau_to_iw_p(b_g_Dt_cvt g_t, int num_cores) {
+        omp_set_num_threads(num_cores);
         auto tau_mesh = g_t[0].mesh();
         auto iw_mesh = make_adjoint_mesh(tau_mesh);
         int tau_size = tau_mesh.size();
@@ -182,7 +105,7 @@ namespace triqs_tprf {
         int tau_mesh_size = tau_mesh_b.size();
 
         int orbitals = g_w[0].target().shape()[0];
-        auto g_t = iw_to_tau_p(g_w);
+        auto g_t = iw_to_tau_p(g_w, num_cores);
 
         auto gf_temp = gf(tau_mesh_b, g_w[0].target().shape());
         auto P_t = make_block_gf<dlr_imtime>(g_w.block_names(), {gf_temp, gf_temp});
@@ -200,7 +123,7 @@ namespace triqs_tprf {
         }
 
         
-        return tau_to_iw_p(P_t);
+        return tau_to_iw_p(P_t, num_cores);
     }
 
     b_g_Dw_t screened_potential(b_g_Dw_cvt P, matrix<double> V, bool self_interactions, int num_cores) {
@@ -270,8 +193,8 @@ namespace triqs_tprf {
             }
         }
 
-        auto W_dyn_t = iw_to_tau_p(W_dyn);
-        auto G_t = iw_to_tau_p(G);
+        auto W_dyn_t = iw_to_tau_p(W_dyn, num_cores);
+        auto G_t = iw_to_tau_p(G, num_cores);
         auto sigma_t = block_gf(G_t);
 
         for (int i = 0; i < 2; ++i) {
@@ -285,7 +208,7 @@ namespace triqs_tprf {
             }
         }
     
-        return tau_to_iw_p(sigma_t);
+        return tau_to_iw_p(sigma_t, num_cores);
     }
 
     b_g_Dw_t hartree_self_energy(b_g_Dw_cvt G, matrix<double> V, bool self_interactions, int num_cores) {
