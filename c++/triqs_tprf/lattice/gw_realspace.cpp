@@ -1,4 +1,5 @@
 #include <iostream>
+#include <typeinfo>
 #include <nda/nda.hpp>
 #include <nda/linalg/eigenelements.hpp>
 #include <triqs/gfs.hpp>
@@ -97,6 +98,68 @@ namespace triqs_tprf {
         return g_w;
     }
 
+    b_g_Dw_t dyson_mu(b_g_Dw_t g_w, double mu, int num_cores) {
+        omp_set_num_threads(num_cores);
+        auto iw_mesh = g_w[0].mesh();
+        auto G = block_gf(g_w);
+        int size = g_w[0].target().shape()[0];
+
+        matrix<double> Mu(size, size);
+        Mu() = mu;
+
+        #pragma omp parallel for
+        for (int i = 0; i < iw_mesh.size(); ++i) {
+            G[0][i] = inverse(inverse(g_w[0][i]) - Mu);
+            G[1][i] = inverse(inverse(g_w[1][i]) - Mu);
+        }
+
+        return G;
+    }
+
+    b_g_Dw_t dyson_mu_sigma(b_g_Dw_t g_w, double mu, b_g_Dw_t sigma_w, int num_cores) {
+        omp_set_num_threads(num_cores);
+        auto iw_mesh = g_w[0].mesh();
+        auto G = block_gf(g_w);
+        int size = g_w[0].target().shape()[0];
+
+        matrix<double> Mu(size, size);
+        Mu() = mu;
+
+        #pragma omp parallel for
+        for (int i = 0; i < iw_mesh.size(); ++i) {
+            G[0][i] = inverse(inverse(g_w[0][i]) - Mu - sigma_w[0][i]);
+            G[1][i] = inverse(inverse(g_w[1][i]) - Mu - sigma_w[1][i]);
+        }
+        
+        return G;
+    }
+
+    double total_density(b_g_Dw_t g_w, int num_cores) {
+        omp_set_num_threads(num_cores);
+
+        auto iw_mesh = g_w[0].mesh();
+        int iw_size = iw_mesh.size();
+        int size = g_w[0].target().shape()[0];
+
+        double tot = 0.0;
+
+        for (int i = 0; i < size; ++i) {
+            auto g_up = gf<dlr_imfreq, scalar_valued>{iw_mesh};
+            auto g_dn = gf<dlr_imfreq, scalar_valued>{iw_mesh};
+
+            for (int w = 0; w < iw_size; ++w){
+                g_up[w] = g_w[0][w](i, i);
+                g_dn[w] = g_w[1][w](i, i);
+            }
+
+            auto g_up_dlr = make_gf_dlr(g_up);
+            auto g_dn_dlr = make_gf_dlr(g_dn);
+            tot += density(g_up_dlr).real() + density(g_dn_dlr).real();
+        }
+
+        return tot;
+    }
+
 
     b_g_Dw_t polarization(b_g_Dw_cvt g_w, dlr_imfreq iw_mesh_b, int num_cores) {
         omp_set_num_threads(num_cores);
@@ -186,21 +249,23 @@ namespace triqs_tprf {
         auto W_dyn = block_gf(W);
         
 
-        for (int i = 0; i < 2; ++i) {
-            #pragma omp parallel for
-            for (int j = 0; j < iw_mesh_b.size(); ++j) {
-                W_dyn[i][j] = W[i][j] - V_t;
-            }
+        
+        #pragma omp parallel for
+        for (int j = 0; j < iw_mesh_b.size(); ++j) {
+            for (int i = 0; i < 2; ++i) {
+                    W_dyn[i][j] = W[i][j] - V_t;
+            }    
         }
 
         auto W_dyn_t = iw_to_tau_p(W_dyn, num_cores);
         auto G_t = iw_to_tau_p(G, num_cores);
         auto sigma_t = block_gf(G_t);
 
-        for (int i = 0; i < 2; ++i) {
-            #pragma omp parallel for
-            for (int a = 0; a < size; ++a) {
-                for (int b = 0; b < size; ++b) {
+        
+        #pragma omp parallel for
+        for (int a = 0; a < size; ++a) {
+            for (int b = 0; b < size; ++b) {
+                for (int i = 0; i < 2; ++i) {
                     for (int j = 0; j < iw_mesh_f.size(); ++j) {
                         sigma_t[i][j](a, b) = -W_dyn_t[i][j](a, b) * G_t[i][j](a, b);
                     }
@@ -210,6 +275,39 @@ namespace triqs_tprf {
     
         return tau_to_iw_p(sigma_t, num_cores);
     }
+
+    std::vector<matrix<std::complex<double>>> density(b_g_Dw_cvt G, int num_cores) {
+        omp_set_num_threads(num_cores);
+
+        auto iw_mesh = G[0].mesh();
+        int iw_size = iw_mesh.size();
+        int size = G[0].target().shape()[0];
+
+        matrix<std::complex<double>> rho_up(size, size);
+        matrix<std::complex<double>> rho_dn(size, size);
+
+        #pragma omp parallel for
+        for (int i = 0; i < size; ++i) {
+            auto g_up = gf(iw_mesh, {1, size});
+            auto g_dn = gf(iw_mesh, {1, size});
+
+            for (int w = 0; w < iw_size; ++w){
+                g_up[w](0, range::all) = G[0][w](i, range::all);
+                g_dn[w](0, range::all) = G[1][w](i, range::all);
+            }
+
+            auto g_up_dlr = make_gf_dlr(g_up);
+            auto g_dn_dlr = make_gf_dlr(g_dn);
+
+
+            rho_up(i, range::all) = density(g_up_dlr)(0, range::all);
+            rho_dn(i, range::all) = density(g_dn_dlr)(0, range::all);
+        }
+
+        std::vector<matrix<std::complex<double>>> rho = {rho_up, rho_dn};
+        return rho;
+    }
+
 
     b_g_Dw_t hartree_self_energy(b_g_Dw_cvt G, matrix<double> V, bool self_interactions, int num_cores) {
         omp_set_num_threads(num_cores);
@@ -226,9 +324,8 @@ namespace triqs_tprf {
             }
         }
 
-        auto G_dlr = make_gf_dlr(G);
-        auto rho_up = density(G_dlr[0]);
-        auto rho_dn = density(G_dlr[1]);
+        std::vector<matrix<std::complex<double>>> rho = density(G, num_cores);
+
 
         matrix<double> hartree_up(size, size);
         matrix<double> hartree_dn(size, size);
@@ -238,8 +335,8 @@ namespace triqs_tprf {
         #pragma omp parallel for
         for (int i = 0; i < size; ++i) {
             for (int j = 0; j < size; ++j) {
-                hartree_up(i, i) += V_t(i, j) * rho_up(j, j).real() + V(i, j) * rho_dn(j, j).real();
-                hartree_dn(i, i) += V(i, j) * rho_up(j, j).real() + V_t(i, j) * rho_dn(j, j).real();
+                hartree_up(i, i) += V_t(i, j) * rho[0](j, j).real() + V(i, j) * rho[1](j, j).real();
+                hartree_dn(i, i) += V(i, j) * rho[0](j, j).real() + V_t(i, j) * rho[1](j, j).real();
             }
         }
 
@@ -271,9 +368,7 @@ namespace triqs_tprf {
         }
 
 
-        auto G_dlr = make_gf_dlr(G);
-        auto rho_up = density(G_dlr[0]);
-        auto rho_dn = density(G_dlr[1]);
+        std::vector<matrix<std::complex<double>>> rho = density(G, num_cores);
 
         matrix<double> fock_up(size, size);
         matrix<double> fock_dn(size, size);
@@ -283,8 +378,8 @@ namespace triqs_tprf {
         #pragma omp parallel for
         for (int i = 0; i < size; ++i) {
             for (int j = 0; j < size; ++j) {
-                fock_up(i, j) = -V_t(i, j) * rho_up(i, j).real();
-                fock_dn(i, j) = -V_t(i, j) * rho_dn(i, j).real();
+                fock_up(i, j) = -V_t(i, j) * rho[0](i, j).real();
+                fock_dn(i, j) = -V_t(i, j) * rho[1](i, j).real();
             }
         }
 

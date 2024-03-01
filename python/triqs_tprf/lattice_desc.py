@@ -1762,4 +1762,8 @@ module.add_function ("triqs_tprf::b_g_Dw_t tau_to_iw_p(triqs_tprf::b_g_Dt_cvt g_
 module.add_function ("triqs_tprf::b_g_Dt_t iw_to_tau(triqs_tprf::b_g_Dw_cvt g_w);", doc = r"""""")
 module.add_function ("triqs_tprf::b_g_Dw_t tau_to_iw(triqs_tprf::b_g_Dt_cvt g_t);", doc = r"""""")
 
+module.add_function ("triqs_tprf::b_g_Dw_t dyson_mu(triqs_tprf::b_g_Dw_t g_w, double mu, int num_cores);", doc = r"""""")
+module.add_function ("triqs_tprf::b_g_Dw_t dyson_mu_sigma(triqs_tprf::b_g_Dw_t g_w, double mu, triqs_tprf::b_g_Dw_t sigma_w, int num_cores);", doc = r"""""")
+
+module.add_function ("double total_density(triqs_tprf::b_g_Dw_t g_w, int num_cores);", doc = r"""""")
 module.generate_code()

@@ -8,5 +8,8 @@ namespace triqs_tprf {
     b_g_Dw_t tau_to_iw_p(b_g_Dt_cvt g_t, int num_cores);
     b_g_Dt_t iw_to_tau(b_g_Dw_cvt g_w);
     b_g_Dw_t tau_to_iw(b_g_Dt_cvt g_w);
+    b_g_Dw_t dyson_mu(b_g_Dw_t g_w, double mu, int num_cores);
+    b_g_Dw_t dyson_mu_sigma(b_g_Dw_t g_w, double mu, b_g_Dw_t sigma_w, int num_cores);
+    double total_density(b_g_Dw_t g_w, int num_cores);
 }
 
