@@ -210,19 +210,18 @@ namespace triqs_tprf {
 
         #pragma omp parallel for
         for (int i = 0; i < iw_mesh.size(); ++i) {
-            auto w = iw_mesh[i];
-
-            auto A = I - V_t * P[0][w];
-            auto B = - V * P[1][w];
-            auto C = - V * P[0][w];
-            auto D = I - V_t * P[1][w];
+            
+            auto A = I - V_t * P[0][i];
+            auto B =   -   V * P[1][i];
+            auto C =   -   V * P[0][i];
+            auto D = I - V_t * P[1][i];
 
             auto Ainv = inverse(A);
 
             auto S = inverse(D - C * Ainv * B);
 
-            W_up[w] = (Ainv + Ainv * B * S * C * Ainv) * V_t - Ainv * B * S * V;
-            W_dn[w] = -S * C * Ainv * V + S * V_t;
+            W_up[i] = (Ainv + Ainv * B * S * C * Ainv) * V_t - Ainv * B * S * V;
+            W_dn[i] = -S * C * Ainv * V + S * V_t;
         }
         
         auto W = make_block_gf<dlr_imfreq>(P.block_names(), {W_up, W_dn});
