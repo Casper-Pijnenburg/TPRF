@@ -101,7 +101,6 @@ namespace triqs_tprf {
     b_g_Dw_t dyson_mu(b_g_Dw_t g_w, double mu, int num_cores) {
         omp_set_num_threads(num_cores);
         auto iw_mesh = g_w[0].mesh();
-        auto G = block_gf(g_w);
         int size = g_w[0].target().shape()[0];
 
         matrix<double> Mu(size, size);
@@ -109,17 +108,16 @@ namespace triqs_tprf {
 
         #pragma omp parallel for
         for (int i = 0; i < iw_mesh.size(); ++i) {
-            G[0][i] = inverse(inverse(g_w[0][i]) - Mu);
-            G[1][i] = inverse(inverse(g_w[1][i]) - Mu);
+            g_w[0][i] = inverse(inverse(g_w[0][i]) - Mu);
+            g_w[1][i] = inverse(inverse(g_w[1][i]) - Mu);
         }
 
-        return G;
+        return g_w;
     }
 
     b_g_Dw_t dyson_mu_sigma(b_g_Dw_t g_w, double mu, b_g_Dw_t sigma_w, int num_cores) {
         omp_set_num_threads(num_cores);
         auto iw_mesh = g_w[0].mesh();
-        auto G = block_gf(g_w);
         int size = g_w[0].target().shape()[0];
 
         matrix<double> Mu(size, size);
@@ -127,11 +125,11 @@ namespace triqs_tprf {
 
         #pragma omp parallel for
         for (int i = 0; i < iw_mesh.size(); ++i) {
-            G[0][i] = inverse(inverse(g_w[0][i]) - Mu - sigma_w[0][i]);
-            G[1][i] = inverse(inverse(g_w[1][i]) - Mu - sigma_w[1][i]);
+            g_w[0][i] = inverse(inverse(g_w[0][i]) - Mu - sigma_w[0][i]);
+            g_w[1][i] = inverse(inverse(g_w[1][i]) - Mu - sigma_w[1][i]);
         }
         
-        return G;
+        return g_w;
     }
 
     double total_density(b_g_Dw_t g_w, int num_cores) {
@@ -158,6 +156,19 @@ namespace triqs_tprf {
         }
 
         return tot;
+    }
+
+    g_Dw_t inv(g_Dw_t g_w, int num_cores) {
+        omp_set_num_threads(num_cores);
+        // auto g_w_inv = gf(g_w);
+        auto iw_mesh = g_w.mesh();
+
+        #pragma omp parallel for
+        for (int i = 0; i < iw_mesh.size(); ++i) {
+            g_w[i] = inverse(g_w[i]);
+        }
+
+        return g_w;
     }
 
 

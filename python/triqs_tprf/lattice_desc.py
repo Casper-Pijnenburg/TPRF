@@ -1766,4 +1766,8 @@ module.add_function ("triqs_tprf::b_g_Dw_t dyson_mu(triqs_tprf::b_g_Dw_t g_w, do
 module.add_function ("triqs_tprf::b_g_Dw_t dyson_mu_sigma(triqs_tprf::b_g_Dw_t g_w, double mu, triqs_tprf::b_g_Dw_t sigma_w, int num_cores);", doc = r"""""")
 
 module.add_function ("double total_density(triqs_tprf::b_g_Dw_t g_w, int num_cores);", doc = r"""""")
+
+module.add_function ("triqs_tprf::g_Dw_t inv(triqs_tprf::g_Dw_t g_w, int num_cores);", doc = r"""""")
+
+
 module.generate_code()
