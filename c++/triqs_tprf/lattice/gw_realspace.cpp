@@ -60,6 +60,42 @@ namespace triqs_tprf {
         return g_tau;
     }
 
+    b_g_Dt_t iw_to_tau_p2(b_g_Dw_cvt g_w, int num_cores) {
+        omp_set_num_threads(num_cores);
+        auto iw_mesh = g_w[0].mesh();
+        auto tau_mesh = make_adjoint_mesh(iw_mesh);
+        int iw_size = iw_mesh.size();
+        int tau_size = tau_mesh.size();
+
+
+        int size = g_w[0].target().shape()[0];
+
+        auto g_tau = make_block_gf<dlr_imtime>(g_w.block_names(), {gf(tau_mesh, g_w[0].target().shape()), gf(tau_mesh, g_w[0].target().shape())});
+
+
+        #pragma omp parallel for collapse(3)
+        for (int i = 0; i < size; ++i) {
+            for (int j = 0; j < size; ++j) {
+                for (int k = 0; k < 2; ++k) {
+                    auto g = gf<dlr_imfreq, scalar_valued>{iw_mesh};
+                    
+                    for (int w = 0; w < iw_size; ++w){
+                        g[w] = g_w[k][w](i, j);
+                    }
+
+                    auto g_t = make_gf_dlr_imtime(make_gf_dlr(g));
+
+                    for (int t = 0; t < tau_size; ++t){
+                        g_tau[k][t](i, j) = g_t[t];
+                    }
+                
+                }
+            }
+        }
+
+        return g_tau;
+    }
+
 
     b_g_Dw_t tau_to_iw_p(b_g_Dt_cvt g_t, int num_cores) {
         omp_set_num_threads(num_cores);
@@ -163,30 +199,6 @@ namespace triqs_tprf {
         }
 
         return g_w;
-    }
-
-    b_g_Dt_t polarization_test(b_g_Dt_cvt g_t, dlr_imtime tau_mesh_b, int num_cores) {
-        omp_set_num_threads(num_cores);
-
-        int tau_mesh_size = tau_mesh_b.size();
-
-        int orbitals = g_t[0].target().shape()[0];
-
-        auto P_t = make_block_gf<dlr_imtime>(g_t.block_names(), {gf(tau_mesh_b, g_t[0].target().shape()), gf(tau_mesh_b, g_t[0].target().shape())});
-        
-        
-        #pragma omp parallel for collapse(4) shared(P_t, g_t)
-        for (int a = 0; a < orbitals; ++a) {
-            for (int b = 0; b < orbitals; ++b) {
-                for (int j = 0; j < 2; ++j) {
-                    for (int i = 0; i < tau_mesh_size; ++i) {
-                        P_t[j][i](a, b) = -1.0 * g_t[j][i](a, b) * g_t[j][tau_mesh_size - i - 1](b, a);
-                    }
-                }
-            }
-        }
-
-        return P_t;
     }
 
     b_g_Dw_t polarization(b_g_Dw_cvt g_w, dlr_imfreq iw_mesh_b, int num_cores) {

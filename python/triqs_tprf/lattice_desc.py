@@ -1769,6 +1769,6 @@ module.add_function ("double total_density(triqs_tprf::b_g_Dw_t g_w, int num_cor
 
 module.add_function ("triqs_tprf::g_Dw_t inv(triqs_tprf::g_Dw_t g_w, int num_cores);", doc = r"""""")
 
-module.add_function ("triqs_tprf::b_g_Dt_t polarization_test(triqs_tprf::b_g_Dt_cvt g_t, dlr_imtime tau_mesh_b, int num_cores);", doc = r"""""")
+module.add_function ("triqs_tprf::b_g_Dt_t iw_to_tau_p2(triqs_tprf::b_g_Dw_cvt g_w, int num_cores);", doc = r"""""")
 
 module.generate_code()
