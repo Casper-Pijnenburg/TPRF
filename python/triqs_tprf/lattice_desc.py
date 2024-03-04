@@ -1750,11 +1750,11 @@ module.add_function ("triqs_tprf::b_g_Dw_t polarization(triqs_tprf::b_g_Dw_cvt g
 
 module.add_function ("triqs_tprf::b_g_Dw_t screened_potential(triqs_tprf::b_g_Dw_cvt P, matrix<double> V, bool self_interactions, int num_cores)", doc = r"""""")
 
-module.add_function ("triqs_tprf::b_g_Dw_t dyn_self_energy(triqs_tprf::b_g_Dw_cvt G, triqs_tprf::b_g_Dw_cvt W, matrix<double> V, bool self_interactions, int num_cores)", doc = r"""""")
+module.add_function ("triqs_tprf::b_g_Dw_t dyn_self_energy(triqs_tprf::b_g_Dw_t G, triqs_tprf::b_g_Dw_cvt W, matrix<double> V, bool self_interactions, int num_cores)", doc = r"""""")
 
-module.add_function ("triqs_tprf::b_g_Dw_t hartree_self_energy(triqs_tprf::b_g_Dw_cvt G, matrix<double> V, bool self_interactions, int num_cores)", doc = r"""""")
+module.add_function ("triqs_tprf::b_g_Dw_t hartree_self_energy(triqs_tprf::b_g_Dw_t G, matrix<double> V, bool self_interactions, int num_cores)", doc = r"""""")
 
-module.add_function ("triqs_tprf::b_g_Dw_t fock_self_energy(triqs_tprf::b_g_Dw_cvt G, matrix<double> V, bool self_interactions, int num_cores)", doc = r"""""")
+module.add_function ("triqs_tprf::b_g_Dw_t fock_self_energy(triqs_tprf::b_g_Dw_t G, matrix<double> V, bool self_interactions, int num_cores)", doc = r"""""")
 
 module.add_function ("triqs_tprf::b_g_Dt_t iw_to_tau_p(triqs_tprf::b_g_Dw_cvt g_w, int num_cores);", doc = r"""""")
 module.add_function ("triqs_tprf::b_g_Dw_t tau_to_iw_p(triqs_tprf::b_g_Dt_cvt g_t, int num_cores);", doc = r"""""")
