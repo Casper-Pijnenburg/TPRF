@@ -172,8 +172,7 @@ namespace triqs_tprf {
         int orbitals = g_w[0].target().shape()[0];
         auto g_t = iw_to_tau_p(g_w, num_cores);
 
-        auto gf_temp = gf(tau_mesh_b, g_w[0].target().shape());
-        auto P_t = make_block_gf<dlr_imtime>(g_w.block_names(), {gf_temp, gf_temp});
+        auto P_t = make_block_gf<dlr_imtime>(g_w.block_names(), {gf(tau_mesh_b, g_w[0].target().shape()), gf(tau_mesh_b, g_w[0].target().shape())});
         
         
         #pragma omp parallel for
@@ -191,7 +190,7 @@ namespace triqs_tprf {
         return tau_to_iw_p(P_t, num_cores);
     }
 
-    b_g_Dw_t screened_potential(b_g_Dw_cvt P_w, matrix<double> V, bool self_interactions, int num_cores) {
+    b_g_Dw_t screened_potential(b_g_Dw_t P_w, matrix<double> V, bool self_interactions, int num_cores) {
         omp_set_num_threads(num_cores);
          
         auto iw_mesh = P_w[0].mesh();
@@ -207,9 +206,6 @@ namespace triqs_tprf {
             }
         }
 
-        auto W_up = gf(iw_mesh, P_w[0].target().shape());
-        auto W_dn = gf(iw_mesh, P_w[0].target().shape());
-
         #pragma omp parallel for
         for (int i = 0; i < iw_mesh.size(); ++i) {
             
@@ -222,12 +218,12 @@ namespace triqs_tprf {
 
             auto S = inverse(D - C * Ainv * B);
 
-            W_up[i] = (Ainv + Ainv * B * S * C * Ainv) * V_t - Ainv * B * S * V;
-            W_dn[i] = -S * C * Ainv * V + S * V_t;
+            P_w[0][i] = (Ainv + Ainv * B * S * C * Ainv) * V_t - Ainv * B * S * V;
+            P_w[1][i] = -S * C * Ainv * V + S * V_t;
         }
         
-        auto W = make_block_gf<dlr_imfreq>(P_w.block_names(), {W_up, W_dn});
-        return W;
+
+        return P_w;
     }
 
 
