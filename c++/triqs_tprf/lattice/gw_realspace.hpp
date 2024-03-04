@@ -12,5 +12,6 @@ namespace triqs_tprf {
     b_g_Dw_t dyson_mu_sigma(b_g_Dw_t g_w, double mu, b_g_Dw_t sigma_w, int num_cores);
     double total_density(b_g_Dw_t g_w, int num_cores);
     g_Dw_t inv(g_Dw_t g_w, int num_cores);
+    b_g_Dt_t polarization_test(b_g_Dt_cvt g_t, dlr_imtime tau_mesh_b, int num_cores);
 }
 

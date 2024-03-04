@@ -12,6 +12,8 @@
 #include "../mpi.hpp"
 #include <omp.h>
 
+
+
 namespace triqs_tprf {
 
     b_g_Dt_t iw_to_tau(b_g_Dw_cvt g_w) {
@@ -36,7 +38,7 @@ namespace triqs_tprf {
         auto g_tau = make_block_gf<dlr_imtime>(g_w.block_names(), {gf(tau_mesh, g_w[0].target().shape()), gf(tau_mesh, g_w[0].target().shape())});
 
 
-        #pragma omp parallel for
+        #pragma omp parallel for shared(g_tau, g_w)
         for (int i = 0; i < size; ++i) {
             auto g_up = gf(iw_mesh, {1, size});
             auto g_dn = gf(iw_mesh, {1, size});
@@ -70,7 +72,7 @@ namespace triqs_tprf {
         auto g_w = make_block_gf<dlr_imfreq>(g_t.block_names(), {gf(iw_mesh, g_t[0].target().shape()), gf(iw_mesh, g_t[0].target().shape())});
 
 
-        #pragma omp parallel for
+        #pragma omp parallel for shared(g_t, g_w)
         for (int i = 0; i < size; ++i) {
             auto g_up = gf(tau_mesh, {1, size});
             auto g_dn = gf(tau_mesh, {1, size});
@@ -100,7 +102,7 @@ namespace triqs_tprf {
         matrix<double> Mu(size, size);
         Mu() = mu;
 
-        #pragma omp parallel for
+        #pragma omp parallel for shared(g_w, Mu)
         for (int i = 0; i < iw_mesh.size(); ++i) {
             g_w[0][i] = inverse(inverse(g_w[0][i]) - Mu);
             g_w[1][i] = inverse(inverse(g_w[1][i]) - Mu);
@@ -117,7 +119,7 @@ namespace triqs_tprf {
         matrix<double> Mu(size, size);
         Mu() = mu;
 
-        #pragma omp parallel for
+        #pragma omp parallel for shared(g_w, Mu, sigma_w)
         for (int i = 0; i < iw_mesh.size(); ++i) {
             g_w[0][i] = inverse(inverse(g_w[0][i]) - Mu - sigma_w[0][i]);
             g_w[1][i] = inverse(inverse(g_w[1][i]) - Mu - sigma_w[1][i]);
@@ -135,6 +137,7 @@ namespace triqs_tprf {
 
         double tot = 0.0;
 
+        #pragma omp parallel for shared(g_w, tot)
         for (int i = 0; i < size; ++i) {
             auto g_up = gf<dlr_imfreq, scalar_valued>{iw_mesh};
             auto g_dn = gf<dlr_imfreq, scalar_valued>{iw_mesh};
@@ -154,7 +157,7 @@ namespace triqs_tprf {
         omp_set_num_threads(num_cores);
         auto iw_mesh = g_w.mesh();
 
-        #pragma omp parallel for
+        #pragma omp parallel for shared(g_w)
         for (int i = 0; i < iw_mesh.size(); ++i) {
             g_w[i] = inverse(g_w[i]);
         }
@@ -162,6 +165,29 @@ namespace triqs_tprf {
         return g_w;
     }
 
+    b_g_Dt_t polarization_test(b_g_Dt_cvt g_t, dlr_imtime tau_mesh_b, int num_cores) {
+        omp_set_num_threads(num_cores);
+
+        int tau_mesh_size = tau_mesh_b.size();
+
+        int orbitals = g_t[0].target().shape()[0];
+
+        auto P_t = make_block_gf<dlr_imtime>(g_t.block_names(), {gf(tau_mesh_b, g_t[0].target().shape()), gf(tau_mesh_b, g_t[0].target().shape())});
+        
+        
+        #pragma omp parallel for collapse(4) shared(P_t, g_t)
+        for (int a = 0; a < orbitals; ++a) {
+            for (int b = 0; b < orbitals; ++b) {
+                for (int j = 0; j < 2; ++j) {
+                    for (int i = 0; i < tau_mesh_size; ++i) {
+                        P_t[j][i](a, b) = -1.0 * g_t[j][i](a, b) * g_t[j][tau_mesh_size - i - 1](b, a);
+                    }
+                }
+            }
+        }
+
+        return P_t;
+    }
 
     b_g_Dw_t polarization(b_g_Dw_cvt g_w, dlr_imfreq iw_mesh_b, int num_cores) {
         omp_set_num_threads(num_cores);
@@ -175,7 +201,7 @@ namespace triqs_tprf {
         auto P_t = make_block_gf<dlr_imtime>(g_w.block_names(), {gf(tau_mesh_b, g_w[0].target().shape()), gf(tau_mesh_b, g_w[0].target().shape())});
         
         
-        #pragma omp parallel for
+        #pragma omp parallel for collapse(4) shared(P_t, g_t)
         for (int a = 0; a < orbitals; ++a) {
             for (int b = 0; b < orbitals; ++b) {
                 for (int j = 0; j < 2; ++j) {
@@ -206,7 +232,7 @@ namespace triqs_tprf {
             }
         }
 
-        #pragma omp parallel for
+        #pragma omp parallel for shared(P_w, V_t, V)
         for (int i = 0; i < iw_mesh.size(); ++i) {
             
             auto A = I - V_t * P_w[0][i];
@@ -247,7 +273,7 @@ namespace triqs_tprf {
         
 
         
-        #pragma omp parallel for
+        #pragma omp parallel for collapse(2) shared(W_dyn, W_w, V_t)
         for (int j = 0; j < iw_mesh_b.size(); ++j) {
             for (int i = 0; i < 2; ++i) {
                     W_dyn[i][j] = W_w[i][j] - V_t;
@@ -258,7 +284,7 @@ namespace triqs_tprf {
         auto g_t = iw_to_tau_p(g_w, num_cores);
 
         
-        #pragma omp parallel for
+        #pragma omp parallel for collapse(4) shared(g_t, W_dyn_t)
         for (int a = 0; a < size; ++a) {
             for (int b = 0; b < size; ++b) {
                 for (int i = 0; i < 2; ++i) {
@@ -282,7 +308,7 @@ namespace triqs_tprf {
         matrix<std::complex<double>> rho_up(size, size);
         matrix<std::complex<double>> rho_dn(size, size);
 
-        #pragma omp parallel for
+        #pragma omp parallel for shared(g_w, rho_up, rho_dn)
         for (int i = 0; i < size; ++i) {
             auto g_up = gf(iw_mesh, {1, size});
             auto g_dn = gf(iw_mesh, {1, size});
@@ -324,7 +350,7 @@ namespace triqs_tprf {
         hartree_up() = 0.0;
         hartree_dn() = 0.0;
 
-        #pragma omp parallel for
+        #pragma omp parallel for collapse(2) shared(rho, V_t, V, hartree_up, hartree_dn)
         for (int i = 0; i < size; ++i) {
             for (int j = 0; j < size; ++j) {
                 hartree_up(i, i) += V_t(i, j) * rho[0](j, j).real() + V(i, j) * rho[1](j, j).real();
@@ -332,7 +358,7 @@ namespace triqs_tprf {
             }
         }
 
-        #pragma omp parallel for
+        #pragma omp parallel for shared(g_w)
         for (int i = 0; i < iw_mesh.size(); ++i) {
             g_w[0][i] = hartree_up;
             g_w[1][i] = hartree_dn;
@@ -364,7 +390,7 @@ namespace triqs_tprf {
         fock_up() = 0.0;
         fock_dn() = 0.0;
 
-        #pragma omp parallel for
+        #pragma omp parallel for collapse(2) shared(rho, V_t, fock_up, fock_dn)
         for (int i = 0; i < size; ++i) {
             for (int j = 0; j < size; ++j) {
                 fock_up(i, j) = -V_t(i, j) * rho[0](i, j).real();
