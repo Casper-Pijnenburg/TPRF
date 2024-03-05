@@ -362,7 +362,7 @@ namespace triqs_tprf {
         hartree_up() = 0.0;
         hartree_dn() = 0.0;
 
-        #pragma omp parallel for collapse(2) shared(rho, V_t, V, hartree_up, hartree_dn)
+        #pragma omp parallel for shared(rho, V_t, V, hartree_up, hartree_dn)
         for (int i = 0; i < size; ++i) {
             for (int j = 0; j < size; ++j) {
                 hartree_up(i, i) += V_t(i, j) * rho[0](j, j).real() + V(i, j) * rho[1](j, j).real();
