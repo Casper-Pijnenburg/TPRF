@@ -173,7 +173,7 @@ namespace triqs_tprf {
 
         double tot = 0.0;
 
-        #pragma omp parallel for shared(g_w, tot)
+        #pragma omp parallel for shared(g_w) reduction(+:tot)
         for (int i = 0; i < size; ++i) {
             auto g_up = gf<dlr_imfreq, scalar_valued>{iw_mesh};
             auto g_dn = gf<dlr_imfreq, scalar_valued>{iw_mesh};
